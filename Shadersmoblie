@@ -5,4 +5,3 @@
 getgenv().SCRIPT_KEY = "be10f4b3-e500-4af7-8345-5f5ae208a50e"
 
 loadstring(game:HttpGet("https://api.jnkie.com/api/v1/luascripts/public/92d951a6365aa45dbb0ff2848324b1e60d8046951a9fcbabd86367a6fec6714b/download"))()
-loadstring(game:HttpGet('https://api.rubis.app/v2/scrap/5g5Mvp9hBBctyWv1/raw'))()
